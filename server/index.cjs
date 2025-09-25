@@ -13,7 +13,7 @@ const {
   WorkHistoryService, 
   BlogService, 
   SettingsService 
-} = require('./database.js');
+} = require('./database.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;

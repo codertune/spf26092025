@@ -16,7 +16,7 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'smart_process_flow',
   user: process.env.DB_USER || 'spf_user',
-  password: process.env.DB_PASSWORD || 'your_secure_password_here',
+  password: process.env.DB_PASSWORD || 'PR3f9m602',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
