@@ -3,6 +3,13 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
+console.log('🔧 Database configuration:');
+console.log(`   Host: ${process.env.DB_HOST || 'localhost'}`);
+console.log(`   Port: ${process.env.DB_PORT || 5432}`);
+console.log(`   Database: ${process.env.DB_NAME || 'smart_process_flow'}`);
+console.log(`   User: ${process.env.DB_USER || 'spf_user'}`);
+console.log(`   SSL: ${process.env.DB_SSL === 'true' ? 'enabled' : 'disabled'}`);
+
 // Database connection pool
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -17,22 +24,38 @@ const pool = new Pool({
 });
 
 // Test connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ Database connection error:', err.stack);
+async function testConnection() {
+  try {
+    const client = await pool.connect();
+    console.log('✅ Database connected successfully');
+    
+    // Test if tables exist
+    const result = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      ORDER BY table_name
+    `);
+    
+    console.log('📋 Available tables:', result.rows.map(row => row.table_name).join(', '));
+    client.release();
+  } catch (err) {
+    console.error('❌ Database connection error:', err.message);
     console.error('💡 Make sure PostgreSQL is running and credentials are correct');
     console.error('🔧 Check your .env file for database configuration');
-  } else {
-    console.log('✅ Database connected successfully');
-    release();
+    console.error('📝 Full error:', err);
   }
-});
+}
+
+testConnection();
 
 // User Management Functions
 class UserService {
   static async createUser(userData) {
     const client = await pool.connect();
     try {
+      console.log('👤 Creating user:', userData.email);
+      
       const { email, name, company, mobile, password } = userData;
       
       // Check if user already exists
@@ -42,6 +65,7 @@ class UserService {
       );
       
       if (existingUser.rows.length > 0) {
+        console.log('❌ User already exists:', email);
         throw new Error('User with this email or mobile number already exists');
       }
       
@@ -81,6 +105,8 @@ class UserService {
         ]
       );
       
+      console.log('✅ User created successfully in database:', result.rows[0].email);
+      
       return result.rows[0];
     } finally {
       client.release();
@@ -90,12 +116,15 @@ class UserService {
   static async authenticateUser(email, password) {
     const client = await pool.connect();
     try {
+      console.log('🔐 Authenticating user:', email);
+      
       const result = await client.query(
         'SELECT * FROM users WHERE email = $1',
         [email.toLowerCase()]
       );
       
       if (result.rows.length === 0) {
+        console.log('❌ User not found:', email);
         throw new Error('User not found');
       }
       
@@ -107,6 +136,7 @@ class UserService {
       
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', email);
         throw new Error('Invalid password');
       }
       
@@ -118,6 +148,7 @@ class UserService {
       
       // Remove password hash from returned user
       const { password_hash, ...userWithoutPassword } = user;
+      console.log('✅ User authenticated successfully:', email);
       return userWithoutPassword;
     } finally {
       client.release();
