@@ -54,31 +54,58 @@ class UserService {
   static async createUser(userData) {
     const client = await pool.connect();
     try {
-      console.log('👤 Creating user:', userData.email);
+      console.log('👤 Starting user creation process...');
+      console.log('📧 Email:', userData.email);
+      console.log('👤 Name:', userData.name);
+      console.log('🏢 Company:', userData.company);
+      console.log('📱 Mobile:', userData.mobile);
+      console.log('🔐 Password provided:', !!userData.password);
       
       const { email, name, company, mobile, password } = userData;
       
+      console.log('🔍 Checking if user already exists...');
       // Check if user already exists
       const existingUser = await client.query(
         'SELECT id FROM users WHERE email = $1 OR mobile = $2',
         [email.toLowerCase(), mobile]
       );
       
+      console.log('📊 Existing user query result:', existingUser.rows.length, 'rows found');
+      
       if (existingUser.rows.length > 0) {
-        console.log('❌ User already exists:', email);
+        console.log('❌ User already exists with email or mobile:', email, mobile);
         throw new Error('User with this email or mobile number already exists');
       }
       
+      console.log('🔐 Hashing password...');
       // Hash password
       const passwordHash = await bcrypt.hash(password, 12);
+      console.log('✅ Password hashed successfully');
       
+      console.log('👑 Checking if this is the first user (admin)...');
       // Check if this is the first user (make them admin)
       const userCount = await client.query('SELECT COUNT(*) FROM users');
+      console.log('📊 Current user count:', userCount.rows[0].count);
       const isFirstUser = parseInt(userCount.rows[0].count) === 0;
+      console.log('👑 Is first user (admin):', isFirstUser);
       
+      console.log('⚙️ Getting system settings for free trial credits...');
       // Get default settings
       const settingsResult = await client.query('SELECT * FROM system_settings ORDER BY created_at DESC LIMIT 1');
+      console.log('📊 Settings query result:', settingsResult.rows.length, 'rows found');
       const freeTrialCredits = settingsResult.rows[0]?.free_trial_credits || 100;
+      console.log('💳 Free trial credits:', freeTrialCredits);
+      
+      console.log('💾 Inserting new user into database...');
+      console.log('📝 User data to insert:', {
+        email: email.toLowerCase(),
+        name,
+        company,
+        mobile,
+        credits: freeTrialCredits,
+        isAdmin: isFirstUser,
+        status: 'active'
+      });
       
       // Insert new user
       const result = await client.query(
@@ -105,11 +132,26 @@ class UserService {
         ]
       );
       
-      console.log('✅ User created successfully in database:', result.rows[0].email);
+      console.log('✅ User inserted successfully! Database response:');
+      console.log('📊 Rows affected:', result.rowCount);
+      console.log('👤 Created user:', result.rows[0]);
+      console.log('🆔 User ID:', result.rows[0].id);
+      console.log('📧 User email:', result.rows[0].email);
       
       return result.rows[0];
+    } catch (error) {
+      console.error('❌ ERROR in createUser function:');
+      console.error('🔍 Error type:', error.constructor.name);
+      console.error('📝 Error message:', error.message);
+      console.error('📊 Error code:', error.code);
+      console.error('🔧 Error details:', error.detail);
+      console.error('💡 Error hint:', error.hint);
+      console.error('📍 Full error object:', error);
+      throw error;
     } finally {
+      console.log('🔒 Releasing database client connection...');
       client.release();
+      console.log('✅ Database client connection released');
     }
   }
   
