@@ -434,13 +434,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message: string }> => {
     try {
+      console.log('🔐 Attempting login for:', email);
+      console.log('🌐 Backend URL:', '/api/auth/login');
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+      
       const result = await response.json();
+      console.log('📊 Response data:', result);
       
       if (result.success) {
         setUser(result.user);
@@ -458,20 +465,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { success: result.success, message: result.message };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error details:', error);
+      console.error('❌ Error type:', error.constructor.name);
+      console.error('❌ Error message:', error.message);
       return { success: false, message: 'Login failed. Please check your connection and try again.' };
     }
   };
 
   const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; message: string }> => {
     try {
+      console.log('👤 Attempting registration for:', userData.email);
+      console.log('🌐 Backend URL:', '/api/auth/register');
+      console.log('📊 Registration data:', { ...userData, password: '[HIDDEN]' });
+      
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+      
       const result = await response.json();
+      console.log('📊 Response data:', result);
       
       if (result.success) {
         setUser(result.user);
@@ -489,7 +506,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { success: result.success, message: result.message };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('❌ Registration error details:', error);
+      console.error('❌ Error type:', error.constructor.name);
+      console.error('❌ Error message:', error.message);
       return { success: false, message: 'Registration failed. Please check your connection and try again.' };
     }
   };
